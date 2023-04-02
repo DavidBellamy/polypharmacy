@@ -5,24 +5,37 @@ import json
 
 from utils import *
 
-ppi_path = "./Data/bio-decagon-ppi/bio-decagon-ppi.csv"
-combo_side_effect_path = "./Data/bio-decagon-combo/bio-decagon-combo.csv"
-drug_gene_path = "./Data/bio-decagon-targets/bio-decagon-targets.csv"
-drug_smile_path = "./Data/drug_smile.json"
-mono_side_effect_path = "./Data/bio-decagon-mono/bio-decagon-mono.csv"
+ppi_path = "./Data/bio-decagon-ppi.csv"
+combo_side_effect_path = "./Data/bio-decagon-combo.csv"
+drug_gene_path = "./Data/bio-decagon-targets.csv"
+# drug_smile_path = "./Data/drug_smile.json"
+mono_side_effect_path = "./Data/bio-decagon-mono.csv"
 
             
 def load_data(return_augment =False):
-    """ protein - protein """
-    net, gene_2_idx = load_ppi(ppi_path)
+    """
+    Loads and processes different types of biological data to create a PyTorch Geometric Heterogeneous Graph.
 
-    gene_edge_list = list(net.edges.data())
+    Returns a heterogeneous graph with different types of nodes (genes and drugs)
+    and relationships (protein-protein, drug-drug, and drug-protein)
+
+    """
+    """ protein - protein """
+    net, gene_2_idx = load_ppi(ppi_path)  # net: networkx graph from protein-protein interaction
+
+    gene_edge_list = list(net.edges.data())  # list of edges
     gene_edge_index = [[gene_2_idx[gene_edge_list[i][0]], gene_2_idx[gene_edge_list[i][1]]] for 
                     i in range(len(gene_edge_list))]
+    # list of edges as identified by their indices in the gene_2_idx dictionary
     gene_edge_index = torch.tensor(gene_edge_index).long().T
 
     """ drug - drug """
     combo_2_se, se_2_combo, se_2_name, combo_2_stitch, stitch_2_idx = load_combo_side_effect(combo_side_effect_path)
+    # combo_2_se: dictionary of side effects for each drug combination
+    # se_2_combo: dictionary of drug combinations for each side effect
+    # se_2_name: dictionary of side effect names for each side effect
+    # combo_2_stitch: dictionary of stitch ids for each drug combination
+    # stitch_2_idx: dictionary of indices for each stitch id
     edge_index_dict = defaultdict(list)
 
     drug_2_idx, edge_index_dict = convert_combo_side_effect_to_edge_index_list(

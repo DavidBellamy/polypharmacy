@@ -6,7 +6,6 @@ import torch_geometric.nn as pyg_nn
 import torch_geometric.utils as pyg_utils
 from models.decoder_module import *
 
-
 def reset_params(self):
     self.lin_msg.weight_initializer = "glorot"
     self.lin_msg.reset_parameters()
@@ -23,33 +22,23 @@ def reset_params(self):
         self.lin_edge.weight_initializer = "glorot"
         self.lin_edge_weight.reset_parameters()
 
-
 GeneralConv.reset_parameters = reset_params
 
-
 def generate_hetero_conv_dict(hidden_dims, edge_types, num_layer):
-    """
-    Helper function that creates a list of dictionaries (equal to the number of layers),
-    where each dictionary contains a GeneralConv layer for each edge type in the graph.
-    This function takes three arguments:
-    hidden_dims (list of hidden dimensions for each layer),
-    edge_types (list of edge types in the graph),
-    and num_layer (number of layers in the model).
-    """
     conv_dicts = []
 
     for i in range(num_layer):
         D = {}
         for edge_type in edge_types:
             src, relation, dst = edge_type
-            D[edge_type] = GeneralConv((-1, -1), hidden_dims[i], aggr="sum", skip_linear=True, l2_normalize=True)
+            D[edge_type] = GeneralConv((-1,-1), hidden_dims[i], aggr = "sum", skip_linear = True, l2_normalize = True)
         conv_dicts.append(D)
     return conv_dicts
 
 
 class HeteroGAE(nn.Module):
     def __init__(self, hidden_dims, out_dim, node_types, edge_types,
-                 decoder_2_relation, relation_2_decoder, dropout=0.5, device="cpu"):
+            decoder_2_relation, relation_2_decoder, dropout = 0.5, device = "cpu"):
         super().__init__()
 
         self.hidden_dims = hidden_dims
@@ -60,11 +49,9 @@ class HeteroGAE(nn.Module):
         self.relation_2_decoder = relation_2_decoder
 
         self.encoder = nn.ModuleList()
-        # pass the hidden_dims, edge_types and num_layers to generate the hetero_conv_dict
-        conv_dicts = generate_hetero_conv_dict(self.hidden_dims, self.edge_types, len(self.hidden_dims))
-
+        conv_dicts = generate_hetero_conv_dict(self.hidden_dims, self.edge_types,len(self.hidden_dims))
         for i in range(len(conv_dicts)):
-            conv = pyg_nn.HeteroConv(conv_dicts[i], aggr="sum")
+            conv = pyg_nn.HeteroConv(conv_dicts[i], aggr = "sum")
             self.encoder.append(conv)
 
         self.decoder = nn.ModuleDict()
@@ -86,12 +73,12 @@ class HeteroGAE(nn.Module):
         for idx, conv in enumerate(self.encoder):
             z_dict = conv(z_dict, edge_index_dict)
             if idx < len(self.encoder) - 1:
-                z_dict = {key: x.relu() for key, x in z_dict.items()}
-            z_dict = {key: F.dropout(x, p=self.dropout, training=self.training)
-                      for key, x in z_dict.items()}
+                z_dict = {key : x.relu() for key, x in z_dict.items()}
+            z_dict = {key : F.dropout(x, p = self.dropout, training = self.training)
+                        for key, x in z_dict.items()}
         return z_dict
 
-    def decode_all_relation(self, z_dict, edge_index_dict, sigmoid=False):
+    def decode_all_relation(self, z_dict, edge_index_dict, sigmoid = False):
         output = {}
         for edge_type in self.edge_types:
             if edge_type not in edge_index_dict.keys():
@@ -104,7 +91,7 @@ class HeteroGAE(nn.Module):
                 output[relation] = F.sigmoid(output[relation])
         return output
 
-    def decode(self, z_dict, edge_index, edge_type, sigmoid=False):
+    def decode(self, z_dict, edge_index, edge_type, sigmoid = False):
         src, relation, dst = edge_type
         decoder_type = self.relation_3_decoder[relation]
         z = (z_dict[src], z_dict[dst])
