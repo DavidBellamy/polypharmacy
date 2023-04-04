@@ -40,25 +40,10 @@ def reset_params(self):
         self.lin_edge_weight.reset_parameters()
 
 
-class CustomLinear(nn.Module):
-    """
-    Custom Linear layer that takes in weights and biases as input
-    Output = input * weight + bias
-    """
-
-    def __init__(self, in_features, out_features, weight, bias):
-        super(CustomLinear, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-
-        self.weight = nn.Parameter(weight)
-        self.bias = nn.Parameter(bias)
-
-    def forward(self, input, weight, bias):
-        return F.linear(input, weight, bias)
-
-
 def customlinear(input, weight, bias):
+    """
+    Implements a custom linear layer, which takes in weights and biases as input and performs a matrix multiplication
+    """
     return F.linear(input, weight.t(), bias)
 
 
@@ -97,23 +82,15 @@ class GeneralConvWithBasis(MessagePassing):
 
         if isinstance(in_channels, int):
             in_channels = (in_channels, in_channels)
-        # self.lin_msg = CustomLinear(in_channels[1], out_channels, lin_msg_wt, lin_msg_biases)
-
-        # if skip_linear or self.in_channels != self.out_channels:
-        #     assert lin_self_wt is not None
-        #     self.lin_self = CustomLinear(in_channels[0], out_channels, lin_self_wt, lin_self_biases)
-        # else:
-        #     self.lin_self = torch.nn.Identity()
 
     def forward(self, x: Union[Tensor, OptPairTensor], edge_index: Adj,
                 edge_attr: Tensor = None,
-                size: Size = None,  lin_self_wt=None, lin_self_biases=None) -> Tensor:
+                size: Size = None) -> Tensor:
 
         if isinstance(x, Tensor):
             x: OptPairTensor = (x, x)
 
         x_self = x[1]
-
 
         out = self.propagate(edge_index, x=x, edge_attr=edge_attr, size=size)
         if self.skip_linear or self.in_channels != self.out_channels:
@@ -123,8 +100,6 @@ class GeneralConvWithBasis(MessagePassing):
             lin_self_biases = torch.matmul(self.basis_lin_self_biases,
                                            self.linear_combinations.t()).squeeze()
             x_self = customlinear(x_self, lin_self_wt, lin_self_biases)
-        # else:
-        #     self.lin_self = torch.nn.Identity()
         out = out + x_self
         if self.l2_normalize:
             out = F.normalize(out, p=2, dim=-1)
@@ -144,7 +119,6 @@ class GeneralConvWithBasis(MessagePassing):
         return x_j_out
 
 
-# GeneralConvWithBasis.reset_parameters = reset_params
 GeneralConv.reset_parameters = reset_params
 
 
@@ -256,7 +230,6 @@ class HeteroGAE(nn.Module):
 
     def encode(self, x_dict, edge_index_dict):
         """
-
         The encode method takes an input dictionary x_dict (node features)
         and an edge_index_dict (edge indices) and applies the encoder layers
         to generate the latent node representations (z_dict).
