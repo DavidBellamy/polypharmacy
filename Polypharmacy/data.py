@@ -65,8 +65,8 @@ def load_data(return_augment =False):
 
     data = pyg_data.HeteroData()
 
-    data["gene"].x = torch.eye(len(gene_2_idx))
-    data["drug"].x = torch.eye(len(stitch_2_idx))
+    data["gene"].x = torch.eye(len(gene_2_idx))  # one-hot encoding of proteins
+    data["drug"].x = torch.eye(len(stitch_2_idx))  # one-hot encoding of drugs
     
     if return_augment:
         with open(drug_smile_path, "r") as f:

@@ -25,6 +25,7 @@ parser.add_argument("--chkpt_dir", type=str, default="./checkpoint/", help="chec
 parser.add_argument("--dropout", type=float, default=0.1, help="dropout rate")
 parser.add_argument("--device", type=str, default="cuda:0", help="training device")
 parser.add_argument("--pretrained", type=str, default=None, help="pretrained model checkpoint path")
+parser.add_argument("--num_bases", type=int, default=None, help="number of basis functions")
 
 args = parser.parse_args()
 torch_geometric.seed_everything(args.seed)
@@ -33,7 +34,6 @@ print("Load data")
 data = load_data()
 edge_types = data.edge_types
 rev_edge_types = []
-
 
 # Create reverse edge types based on the original edge types.
 # This is used later in the RandomLinkSplit transformation
@@ -56,14 +56,12 @@ for node in data.node_types:
     valid_data[node].x = valid_data[node].x.to_sparse().double()
     test_data[node].x = test_data[node].x.to_sparse().double()
 
-
 # Remove the reverse edge types from the train, validation, and test datasets
 # as they were only needed for the RandomLinkSplit transformation:
 for edge_type in rev_edge_types:
     del train_data[edge_type]
     del valid_data[edge_type]
     del test_data[edge_type]
-
 
 # For edge types where the source and destination node types are the same,
 # make the edge indices undirected in the train, validation, and test datasets
@@ -74,9 +72,8 @@ for edge_type in edge_types:
         test_data[edge_type].edge_index = pyg_utils.to_undirected(test_data[edge_type].edge_index)
 
 print("Initialize model...")
-hidden_dim = [64, 32]   # hidden dimensions of the encoder
-num_layer = 2        # number of layers in the encoder
-
+hidden_dim = [64, 32]  # hidden dimensions of the encoder
+num_layer = 2  # number of layers in the encoder
 
 # The decoder is a bilinear decoder for the "interact", "has_target", and "get_target" relations
 # and a dedicom decoder for all other relations (the drug-drug interaction relations)
@@ -99,10 +96,11 @@ for (_, relation, _) in edge_types:
 
 # Set the output dimension, which is the same as the last hidden layer's dimension
 out_dim = hidden_dim[-1]
-
+input_dim = {"drug": train_data.x_dict["drug"].shape[1], "gene": train_data.x_dict["gene"].shape[1]}
 # Initialize the model
 net = HeteroGAE(hidden_dim, out_dim, data.node_types, data.edge_types, decoder_2_relation,
-                relation_2_decoder, dropout=args.dropout, device=args.device).to(args.device)
+                relation_2_decoder, num_bases=args.num_bases, input_dim=input_dim, dropout=args.dropout,
+                device=args.device).to(args.device)
 net = net.to(torch.double)
 
 # Load the pre-trained model checkpoint if provided as an argument
@@ -118,18 +116,17 @@ print("Training device: ", args.device)
 train_edge_label_index_dict = train_data.edge_label_index_dict
 train_data = train_data.to(args.device)
 valid_data = valid_data.to(args.device)
-best_val_roc = 0 # best validation ROC-AUC score intialized to 0
-
-print("Training...") # Training loop
+best_val_roc = 0  # best validation ROC-AUC score intialized to 0
+print("Training...")  # Training loop
 for epoch in range(num_epoch):
     start = time.time()
     net.train()  # set the model to training mode
     optimizer.zero_grad()  # clear the gradients
     z_dict = net.encode(train_data.x_dict, train_data.edge_index_dict)  # encode the graph
-    pos_edge_label_index_dict = train_data.edge_label_index_dict # get the positive edge indices
-    edge_label_index_dict = {} # initialize the dictionary for the edge indices
-    edge_label_dict = {} # initialize the dictionary for the edge labels
-    for edge_type in edge_types:    # for each edge type
+    pos_edge_label_index_dict = train_data.edge_label_index_dict  # get the positive edge indices
+    edge_label_index_dict = {}  # initialize the dictionary for the edge indices
+    edge_label_dict = {}  # initialize the dictionary for the edge labels
+    for edge_type in edge_types:  # for each edge type
         src, relation, dst = edge_type  # get the source, relation, and destination node types
         if relation == "get_target":  # skip the "get_target" relation
             continue
@@ -142,7 +139,7 @@ for epoch in range(num_epoch):
                                                       neg_edge_label_index], dim=-1)
 
         pos_label = torch.ones(pos_edge_label_index_dict[edge_type].shape[1])  # positive edge labels
-        neg_label = torch.zeros(neg_edge_label_index.shape[1])         # negative edge labels
+        neg_label = torch.zeros(neg_edge_label_index.shape[1])  # negative edge labels
         edge_label_dict[relation] = torch.cat([pos_label, neg_label], dim=0)  # concatenate the edge labels
 
     edge_pred = net.decode_all_relation(z_dict, edge_label_index_dict)  # decode the edge labels

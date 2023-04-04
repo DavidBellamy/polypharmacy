@@ -9,8 +9,8 @@ class InnerProductDecoder(nn.Module):
 
     def forward(self, z, edge_index, relation = None):
         if isinstance(z, tuple):
-            src = z[0][edge_index[0]]
-            dst = z[1][edge_index[1]]
+            src = z[0][edge_index[0]]   # z[0] is the node feature matrix for the first node type
+            dst = z[1][edge_index[1]]   # z[1] is the node feature matrix for the second node type
         else:
             src = z[edge_index[0]]
             dst = z[edge_index[1]]
