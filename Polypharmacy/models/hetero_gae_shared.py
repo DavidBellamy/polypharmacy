@@ -24,6 +24,22 @@ def reset_params(self):
 
 GeneralConv.reset_parameters = reset_params
 
+
+class CustomConvLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, k):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.k = k
+        self.W = nn.Parameter(torch.Tensor(k, in_channels, out_channels))
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.xavier_uniform_(self.W)
+
+    def forward(self, a, x):
+        W_psi = torch.einsum("ijk,ik->jk", self.W, a)
+        return F.linear(x, W_psi)
 def generate_hetero_conv_dict(hidden_dims, edge_types, num_layer):
     conv_dicts = []
 

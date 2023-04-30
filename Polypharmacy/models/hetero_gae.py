@@ -136,6 +136,7 @@ class HeteroGAE(nn.Module):
         self.num_bases = num_bases  # number of basis functions for the basis decomposition
         # (less than number of interaction types)
         if self.num_bases:
+            print("Using basis decomposition")
             self.input_dim = input_dim  # input dimension for each node type: a dictionary of node_type: input_dim
             self.basis_lin_msg_wt = [nn.Parameter(torch.FloatTensor(input_dim['drug'], hidden_dims[0], self.num_bases))]
             # basis_lin_msg_wt is a basis of the linear transformation for

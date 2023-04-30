@@ -9,13 +9,41 @@ import networkx as nx
 import json
 import pickle
 from sklearn.decomposition import PCA
+import pandas as pd
+import numpy as np
 
 
-def load_ppi(filepath="bio-decagon-ppi/bio-decagon-ppi.csv"):
+def randomize_dataframe_col2_values(df, col_randomize):
+    """
+    Randomizes the values in col2 of a dataframe while keeping the values in col1 the same.
+    Used for randomizing the values in the drug-drug interaction dataset and drug-protein interaction dataset.
+    """
+    # Create a new column containing a random order of row indices
+    print(df.head(3))
+    df['random_order'] = np.random.permutation(len(df))
+    print("Randomizing column: ", col_randomize, "...")
+    # Sort the dataframe by the new column
+    df_randomized = df.sort_values('random_order')
+
+    # Reset the index of the randomized dataframe
+    df_randomized = df_randomized.reset_index(drop=True)
+
+    # Replace the values in col2 of the randomized dataframe with the corresponding values in col2 of the original dataframe
+    df_randomized[col_randomize] = df[col_randomize]
+    # Delete the random_order column
+    df_randomized = df_randomized.drop(columns=['random_order'])
+    print(df_randomized.head(3))
+    print('Done randomizing column: ', col_randomize, '!')
+    return df_randomized
+
+
+def load_ppi(filepath="bio-decagon-ppi/bio-decagon-ppi.csv", randomize_ppi=False):
     """
      Loads the protein-protein interaction graph from the Bio-decagon dataset.
     """
     df = pd.read_csv(filepath)
+    if randomize_ppi:
+        df = randomize_dataframe_col2_values(df, "Gene 2")
     print("Load Protein-Protein Interaction Graph")
     src, dst = df["Gene 1"].tolist(), df["Gene 2"].tolist()
     del df
@@ -32,11 +60,13 @@ def load_ppi(filepath="bio-decagon-ppi/bio-decagon-ppi.csv"):
     return net, gene_2_idx
 
 
-def load_targets(filepath="bio-decagon-targets/bio-decagon-targets.csv"):
+def load_targets(filepath="bio-decagon-targets/bio-decagon-targets.csv", randomize_dpi=False):
     """
         Loads the drug-target interaction graph from the Bio-decagon dataset.
     """
     df = pd.read_csv(filepath)
+    if randomize_dpi:
+        df = randomize_dataframe_col2_values(df, "Gene")
     print("Load Drug-Target Interaction Graph")
     print("Num of interaction: ", df.shape[0])
     print()

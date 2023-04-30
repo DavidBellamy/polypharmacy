@@ -12,7 +12,7 @@ drug_gene_path = "./Data/bio-decagon-targets.csv"
 mono_side_effect_path = "./Data/bio-decagon-mono.csv"
 
             
-def load_data(return_augment =False):
+def load_data(randomize_ppi=False, randomize_dpi = False, return_augment =False):
     """
     Loads and processes different types of biological data to create a PyTorch Geometric Heterogeneous Graph.
 
@@ -21,7 +21,9 @@ def load_data(return_augment =False):
 
     """
     """ protein - protein """
-    net, gene_2_idx = load_ppi(ppi_path)  # net: networkx graph from protein-protein interaction
+    randomize_ppi = randomize_ppi
+    randomize_dpi = randomize_dpi
+    net, gene_2_idx = load_ppi(ppi_path, randomize_ppi=randomize_ppi)  # net: networkx graph from protein-protein interaction
 
     gene_edge_list = list(net.edges.data())  # list of edges
     gene_edge_index = [[gene_2_idx[gene_edge_list[i][0]], gene_2_idx[gene_edge_list[i][1]]] for 
@@ -44,7 +46,7 @@ def load_data(return_augment =False):
     print("Number of side effects in consideration: ", len(edge_index_dict))
 
     """ drug - protein """
-    drug_2_gene = load_targets(drug_gene_path)
+    drug_2_gene = load_targets(drug_gene_path, randomize_dpi= randomize_dpi)
     drug_gene_edge_index = []
     for stitch, genes in drug_2_gene.items():
         for gene in genes:
