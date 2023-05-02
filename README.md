@@ -2,9 +2,9 @@
 
 Contributors:
 * Bhawesh Kumar
-Other Contributors (Bhawesh implemented weight sharing on their codebase):
-* Ngo Nhat Khang 
-* Hy Truong Son 
+- Other Contributors (Bhawesh implemented weight sharing on their codebase):
+  * Ngo Nhat Khang 
+  * Hy Truong Son 
 
 Papers:
 * Predicting Polypharmacy Side-effects with Efficient Weight Sharing https://drive.google.com/file/d/11St8wHn8CI8TCckoX8qm2OJuryKvPuIW/view?usp=sharing
