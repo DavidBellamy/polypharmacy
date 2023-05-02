@@ -13,7 +13,8 @@ Papers:
 - [Pytorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/)\
 Recommend using Conda for easy installation. 
 ## Data
-Make sure a Data folder is created in each data's subfolder. Then, you should donwload data from the links below and locate them into the Data folders as:
+Download from [Decagon](http://snap.stanford.edu/decagon/).
+Make sure the Data folder is created. Then, you should download the four required csv data files from the decagon webpage and locate them into the Data folders as:
   ```
    
     └── Polypharmacy                
@@ -35,10 +36,8 @@ Make sure a Data folder is created in each data's subfolder. Then, you should do
     │   ├── utils.py
     └── README.md
    ```
-#### Polypharmacy 
-Download from [Decagon](https://github.com/mims-harvard/decagon)
 
-#### Polypharmacy
+
 - Train GAE without shared basis
   ```bash
     cd Polypharmacy/
