@@ -1,4 +1,4 @@
-# Drug-Drug Side-effect Prediction With Efficient Weight Sharing
+# Drug-Drug Side-effect Prediction With Efficient Weight Sharing (Harvard APMTH 220 Final Project)
 
 Contributors:
 * Bhawesh Kumar
