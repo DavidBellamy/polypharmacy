@@ -1,12 +1,13 @@
-# Project of drug interactions
+# Drug-Drug Side-effect Prediction With Efficient Weight Sharing
 
 Contributors:
-* Ngo Nhat Khang
-* Hy Truong Son (Correspondent / PI)
+* Bhawesh Kumar
+Other Contributors (Bhawesh implemented weight sharing on their codebase):
+* Ngo Nhat Khang 
+* Hy Truong Son 
 
 Papers:
-* Predicting Drug-Drug Interactions using Deep Generative Models on Graphs, NeurIPS 2022 (AI for Science) https://arxiv.org/pdf/2209.09941.pdf
-
+* Predicting Polypharmacy Side-effects with Efficient Weight Sharing https://drive.google.com/file/d/11St8wHn8CI8TCckoX8qm2OJuryKvPuIW/view?usp=sharing
 ## Requirements
 - [Pytorch](https://pytorch.org/)
 - [Pytorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/)\
@@ -14,42 +15,63 @@ Recommend using Conda for easy installation.
 ## Data
 Make sure a Data folder is created in each data's subfolder. Then, you should donwload data from the links below and locate them into the Data folders as:
   ```
-    ├── Anticancer                
-    │   ├── Data
-    │   ├── ...
+   
     └── Polypharmacy                
-    │   ├── Data  
-    │   ├── ...
+    │   ├── Data 
+    │   │   ├── bio-decagon-combo.csv
+    │   │   ├── bio-decagon-mono.csv
+    │   │   ├── bio-decagon-ppi.csv
+    │   │   ├── bio-decagon-targets.csv
+    │   ├── models
+    │   │   ├── trained_models
+    │   │   │   ├──...
+    │   │   ├── decoder_module.py
+    │   │   ├── hetero_gae.py
+    │   │   ├── hetero_gae_shared.py
+    │   ├── data.py
+    │   ├── main_gae.py
+    │   ├── metrics.py
+    │   ├── train_hetero_gae.py
+    │   ├── utils.py
     └── README.md
    ```
-#### Anticancer
-Download from [ADRML](https://github.com/fahmadimoughari/AdrML)
 #### Polypharmacy 
 Download from [Decagon](https://github.com/mims-harvard/decagon)
 
-## Run
-#### Anticancer
-  ```bash
-    cd Anticancer/
-    bash train.sh
-  ```
 #### Polypharmacy
-- Train GAE
+- Train GAE without shared basis
   ```bash
     cd Polypharmacy/
-    python3 train_hetero_gae.py --seed 1 --num_epoch 300 --lr 1e-3 --chkpt_dir ./ --dropout 0.1 --device cuda:0
+    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models --patience 25 --seed 5
   ```
-- Train VGAE
+- Train GAE without shared basis with randomization of Protein-Protein Interaction and Protein-Drug Interaction data
   ```bash
     cd Polypharmacy/
-    python3 train_hetero_vgae.py --seed 1 --num_epoch 300 --lr 1e-3 --chkpt_dir ./ --dropout 0.1 --device cuda:0 --latent_encoder_type linear
+    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models --patience 25 --seed 5 --randomize_ppi --randomize_dpi
   ```
-- Train VGAE + Morgan fingerprints
+  Train GAE with shared basis (15 basis vectors here)
   ```bash
     cd Polypharmacy/
-    python3 train_hetero_vgae_morgan.py --seed 1 --num_epoch 300 --lr 1e-3 --chkpt_dir ./ --dropout 0.1 --device cuda:0 --latent_encoder_type linear
+    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models_shared --patience 25 --seed 5 
   ```
+  Train GAE with shared basis (15 basis vectors here) with randomization of Protein-Protein Interaction and Protein-Drug Interaction data
+  ```bash
+    cd Polypharmacy/
+    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models_shared --patience 25 --seed 5 --randomize_ppi --randomize_dpi
+  ```
+
 ## Citations
+```bibtex
+@misc{ngo2022predicting,
+      title={Predicting Drug-Drug Interactions using Deep Generative Models on Graphs}, 
+      author={Nhat Khang Ngo and Truong Son Hy and Risi Kondor},
+      year={2022},
+      eprint={2209.09941},
+      archivePrefix={arXiv},
+      primaryClass={q-bio.BM}
+}
+```
+
 ```bibtex
 @article{Zitnik2018,
   title={Modeling polypharmacy side effects with graph convolutional networks},
@@ -62,16 +84,5 @@ Download from [Decagon](https://github.com/mims-harvard/decagon)
 }
 
 ```
-```bibtex
-@article{ahmadi2020adrml,
-  title={ADRML: anticancer drug response prediction using manifold learning},
-  author={Ahmadi Moughari, Fatemeh and Eslahchi, Changiz},
-  journal={Scientific reports},
-  volume={10},
-  number={1},
-  pages={1--18},
-  year={2020},
-  publisher={Nature Publishing Group}
-}
-```
+
 

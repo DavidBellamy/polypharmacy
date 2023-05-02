@@ -55,38 +55,3 @@ else:
         with open("results_shared_basis.pkl", "wb") as f:
             pickle.dump(results, f)
 
-# Data (indepedent weights)
-# Aucroc, Auprc, Ap50
-# .861, .832 .800 (seed 8)
-# .861, .832, .802 (seed 7)
-# .844, .817, .787 (seed 6)
-# .847, .820, .788 (seed 5)
-# .846, .821, .783 (seed 4)
-# .871, .846, .840 (seed 3)
-
-# Data (shared weights, num_bases=20)
-# Aucroc, Auprc, Ap50
-# .930, .909, .901 (seed 7),
-# .931, .909, .901 (seed 6)
-# .933, .913, .914 (seed 5)
-# .928, .908, .910 (seed 4)
-# .932, .910, .899 (seed 3)
-# .927, .906, .910 (seed 2)
-
-# Data (shared weights, num_bases=1, seed 5)
-# 0.8863, 0.8686 0.8801
-# Data (shared weights, num_bases=5, seed 5)
-# 0.9354, 0.9141 0.9127
-# Data (shared weights, num_bases=50, seed 5)
-# 0.8859, 0.8591 0.8562
-# Data (shared weights, num_bases=10, seed 5)
-# 0.9375, 0.9164, 0.9138
-# Data (shared weights, num_bases=12, seed 5)
-# 0.9372, 0.9158, 0.9142
-# Data (shared weights, num_bases=15, seed 5)
-# 0.9411, 0.9198, 0.9168
-# Randomized PPI (shared weights, num_bases=15, seed 5)
-# 0.9348, 0.9127, 0.9067
-# Randomized PPI and PDI (No shared weights)
-# 0.8988, 0.8728, 0.8712
-
