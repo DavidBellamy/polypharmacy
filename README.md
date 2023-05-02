@@ -7,7 +7,7 @@ Contributors:
   * Hy Truong Son 
 
 Papers:
-* Predicting Polypharmacy Side-effects with Efficient Weight Sharing https://drive.google.com/file/d/11St8wHn8CI8TCckoX8qm2OJuryKvPuIW/view?usp=sharing
+* Predicting Polypharmacy Side-effects with Efficient Weight Sharing https://drive.google.com/file/d/1AcFKcBVm-eqZEPA62uHcjAnxZkYBGPNL/view?usp=sharing
 ## Requirements
 - [Pytorch](https://pytorch.org/)
 - [Pytorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/)\
