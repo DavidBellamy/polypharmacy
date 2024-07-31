@@ -279,7 +279,9 @@ class HeteroGAE(nn.Module):
                 src, relation, dst = edge_type
                 if relation not in ["interact", "has_target", "get_target"]:
                     if self.num_bases is not None and src == "drug" and dst == "drug":
-                        in_channels = self.hidden_dims[i - 1] if i > 0 else self.input_dim["drug"]
+                        in_channels = (
+                            self.hidden_dims[i - 1] if i > 0 else self.input_dim["drug"]
+                        )
 
                         D[edge_type] = GeneralConvWithBasis(
                             in_channels,
@@ -291,7 +293,7 @@ class HeteroGAE(nn.Module):
                             self.basis_lin_self_biases[i],
                             aggr="sum",
                             skip_linear=True,
-                            l2_normalize=True
+                            l2_normalize=True,
                         )
                     else:
                         D[edge_type] = GeneralConv(
@@ -299,7 +301,7 @@ class HeteroGAE(nn.Module):
                             self.hidden_dims[i],
                             aggr="sum",
                             skip_linear=True,
-                            l2_normalize=True
+                            l2_normalize=True,
                         )
                 else:
                     D[edge_type] = GeneralConv(
@@ -307,7 +309,7 @@ class HeteroGAE(nn.Module):
                         self.hidden_dims[i],
                         aggr="sum",
                         skip_linear=True,
-                        l2_normalize=True
+                        l2_normalize=True,
                     )
             conv_dicts.append(D)
         return conv_dicts
@@ -324,7 +326,9 @@ class HeteroGAE(nn.Module):
         z_dict = x_dict
         for idx, conv in enumerate(self.encoder):
             # HeteroConv expects dictionaries of source and destination features
-            z_dict_new = conv(z_dict, edge_index_dict)  # TODO: fix empty edge attr error
+            z_dict_new = conv(
+                z_dict, edge_index_dict
+            )  # TODO: fix empty edge attr error
 
             if idx < len(self.encoder) - 1:
                 z_dict_new = {key: F.relu(z) for key, z in z_dict_new.items()}
