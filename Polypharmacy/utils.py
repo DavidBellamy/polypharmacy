@@ -1,16 +1,12 @@
-from sklearn.datasets import fetch_20newsgroups
-import torch
-# from tdc.chem_utils import featurize
 from collections import defaultdict
 from typing import DefaultDict
-import pandas as pd
-import numpy as np
+
 import networkx as nx
-import json
-import pickle
-from sklearn.decomposition import PCA
-import pandas as pd
 import numpy as np
+import pandas as pd
+import torch
+
+from polypharmacy import MONO_SIDE_EFFECT_PATH
 
 
 def randomize_dataframe_col2_values(df, col_randomize):
@@ -20,10 +16,10 @@ def randomize_dataframe_col2_values(df, col_randomize):
     """
     # Create a new column containing a random order of row indices
     print(df.head(3))
-    df['random_order'] = np.random.permutation(len(df))
+    df["random_order"] = np.random.permutation(len(df))
     print("Randomizing column: ", col_randomize, "...")
     # Sort the dataframe by the new column
-    df_randomized = df.sort_values('random_order')
+    df_randomized = df.sort_values("random_order")
 
     # Reset the index of the randomized dataframe
     df_randomized = df_randomized.reset_index(drop=True)
@@ -31,15 +27,15 @@ def randomize_dataframe_col2_values(df, col_randomize):
     # Replace the values in col2 of the randomized dataframe with the corresponding values in col2 of the original dataframe
     df_randomized[col_randomize] = df[col_randomize]
     # Delete the random_order column
-    df_randomized = df_randomized.drop(columns=['random_order'])
+    df_randomized = df_randomized.drop(columns=["random_order"])
     print(df_randomized.head(3))
-    print('Done randomizing column: ', col_randomize, '!')
+    print("Done randomizing column: ", col_randomize, "!")
     return df_randomized
 
 
 def load_ppi(filepath="bio-decagon-ppi/bio-decagon-ppi.csv", randomize_ppi=False):
     """
-     Loads the protein-protein interaction graph from the Bio-decagon dataset.
+    Loads the protein-protein interaction graph from the Bio-decagon dataset.
     """
     df = pd.read_csv(filepath)
     if randomize_ppi:
@@ -60,9 +56,11 @@ def load_ppi(filepath="bio-decagon-ppi/bio-decagon-ppi.csv", randomize_ppi=False
     return net, gene_2_idx
 
 
-def load_targets(filepath="bio-decagon-targets/bio-decagon-targets.csv", randomize_dpi=False):
+def load_targets(
+    filepath="bio-decagon-targets/bio-decagon-targets.csv", randomize_dpi=False
+):
     """
-        Loads the drug-target interaction graph from the Bio-decagon dataset.
+    Loads the drug-target interaction graph from the Bio-decagon dataset.
     """
     df = pd.read_csv(filepath)
     if randomize_dpi:
@@ -80,9 +78,11 @@ def load_targets(filepath="bio-decagon-targets/bio-decagon-targets.csv", randomi
     return stitch_2_gene  # drug -> target
 
 
-def load_categories(filepath="bio-decagon-effectcategories/bio-decagon-effectcategories.csv"):
+def load_categories(
+    filepath="bio-decagon-effectcategories/bio-decagon-effectcategories.csv",
+):
     """
-        Loads the side effect categories from the Bio-decagon dataset.
+    Loads the side effect categories from the Bio-decagon dataset.
     """
     df = pd.read_csv(filepath)
 
@@ -90,10 +90,12 @@ def load_categories(filepath="bio-decagon-effectcategories/bio-decagon-effectcat
     side_effect_names = df["Side Effect Name"]
     disease_classes = df["Disease Class"]
 
-    side_effect_2_name = {}     # side effect -> name
-    side_effect_2_class = {}   # side effect -> disease class
+    side_effect_2_name = {}  # side effect -> name
+    side_effect_2_class = {}  # side effect -> disease class
 
-    for side_effect, name, class_ in zip(side_effects, side_effect_names, disease_classes):
+    for side_effect, name, class_ in zip(
+        side_effects, side_effect_names, disease_classes
+    ):
         side_effect_2_name[side_effect] = name
         side_effect_2_class[side_effect] = class_
     # Returns a dictionary mapping side effects to their names and
@@ -103,22 +105,22 @@ def load_categories(filepath="bio-decagon-effectcategories/bio-decagon-effectcat
 
 def load_combo_side_effect(filepath="bio-decagon-combo/bio-decagon-combo.csv"):
     """
-        Loads the drug combination side effect graph from the Bio-decagon dataset.
-        Returns: combo_2_side_effect containing drug combinations and their side effects,
-        side_effect_2_combo containing side effects and their drug combinations,
-        side_effect_2_name containing side effects and their names,
-        combo_2_stitch containing drug combinations and their drugs,
-        stitch_2_idx containing drugs and their unique indices.
+    Loads the drug combination side effect graph from the Bio-decagon dataset.
+    Returns: combo_2_side_effect containing drug combinations and their side effects,
+    side_effect_2_combo containing side effects and their drug combinations,
+    side_effect_2_name containing side effects and their names,
+    combo_2_stitch containing drug combinations and their drugs,
+    stitch_2_idx containing drugs and their unique indices.
     """
     df = pd.read_csv(filepath)
     print("Load Combination Side Effect Graph")
-    combo_2_side_effect = defaultdict(set)   # drug combination -> side effect
+    combo_2_side_effect = defaultdict(set)  # drug combination -> side effect
     side_effect_2_combo = defaultdict(set)  # side effect -> drug combination
     side_effect_2_name = {}
     combo_2_stitch = {}
 
     stitch_ids_1 = df["STITCH 1"].tolist()  # drug 1
-    stitch_ids_2 = df["STITCH 2"].tolist()      # drug 2
+    stitch_ids_2 = df["STITCH 2"].tolist()  # drug 2
     side_effects = df["Polypharmacy Side Effect"].tolist()  # side effect
     side_effect_names = df["Side Effect Name"].tolist()  # side effect name
     combos = (df["STITCH 1"] + "_" + df["STITCH 2"]).tolist()  # drug combination
@@ -131,9 +133,12 @@ def load_combo_side_effect(filepath="bio-decagon-combo/bio-decagon-combo.csv"):
         combo_2_side_effect[combo].add(side_effect)  # drug combination -> side effect
         side_effect_2_combo[side_effect].add(combo)  # side effect -> drug combination
         side_effect_2_name[side_effect] = side_effect_name  # side effect -> name
-        combo_2_stitch[combo] = [stitch_id_1, stitch_id_2]  # drug combination -> drug1, drug2
+        combo_2_stitch[combo] = [
+            stitch_id_1,
+            stitch_id_2,
+        ]  # drug combination -> drug1, drug2
         stitch_set.add(stitch_id_1)  # add drug1 to drug set
-        stitch_set.add(stitch_id_2)     # add drug2 to drug set
+        stitch_set.add(stitch_id_2)  # add drug2 to drug set
 
     stitch_set = list(stitch_set)
     stitch_set.sort()
@@ -149,10 +154,18 @@ def load_combo_side_effect(filepath="bio-decagon-combo/bio-decagon-combo.csv"):
     print("Number of side effects: ", len(side_effect_2_name))
     print("Number of interactions: ", num_interactions)
     print()
-    return combo_2_side_effect, side_effect_2_combo, side_effect_2_name, combo_2_stitch, stitch_2_idx
+    return (
+        combo_2_side_effect,
+        side_effect_2_combo,
+        side_effect_2_name,
+        combo_2_stitch,
+        stitch_2_idx,
+    )
 
 
-def convert_combo_side_effect_to_edge_index_list(side_effect_2_combo, combo_2_stitch, stitch_2_idx):
+def convert_combo_side_effect_to_edge_index_list(
+    side_effect_2_combo, combo_2_stitch, stitch_2_idx
+):
     """
     Input: side_effect_2_combo: Containing side effects and their drug combinations,
     combo_2_stitch: containing drug combinations and their drugs,
@@ -165,23 +178,29 @@ def convert_combo_side_effect_to_edge_index_list(side_effect_2_combo, combo_2_st
     """
     edge_index_dict = defaultdict(list)
     for se in side_effect_2_combo.keys():  # loop through all the side effects
-        for combo in side_effect_2_combo[se]:  # loop through all the drug combinations for each side effect
+        for combo in side_effect_2_combo[
+            se
+        ]:  # loop through all the drug combinations for each side effect
             s1, s2 = combo_2_stitch[combo]  # get the drugs for each drug combination
-            edge_index_dict[("drug", se, "drug")].append([stitch_2_idx[s1], stitch_2_idx[s2]])
+            edge_index_dict[("drug", se, "drug")].append(
+                [stitch_2_idx[s1], stitch_2_idx[s2]]
+            )
 
         if len(edge_index_dict[("drug", se, "drug")]) < 500:
             del edge_index_dict[("drug", se, "drug")]
             # delete the side effect if the number of interactions is less than 500
         else:
             # convert the edge indices to tensor
-            edge_index_dict[("drug", se, "drug")] = torch.tensor(edge_index_dict[("drug", se, "drug")]).long().T
+            edge_index_dict[("drug", se, "drug")] = (
+                torch.tensor(edge_index_dict[("drug", se, "drug")]).long().T
+            )
     # Returns a dictionary edge_index_dict mapping side effects types to their drug combinations
     # and a dictionary stitch_2_idx mapping drugs to their unique indices.
 
     return stitch_2_idx, edge_index_dict
 
 
-def load_mono_side_effect(filepath="bio-decagon-mono/bio-decagon-mono.csv"):
+def load_mono_side_effect(filepath=MONO_SIDE_EFFECT_PATH):
     df = pd.read_csv(filepath)
     print("Load Mono Side Effect\n")
     stitch_ids = df["STITCH"]

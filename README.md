@@ -1,62 +1,84 @@
-# Drug-Drug Side-effect Prediction With Efficient Weight Sharing (Harvard APMTH 220 Final Project)
+# Drug-Drug Side-effect Prediction With Efficient Weight Sharing
 
 Contributors:
 * Bhawesh Kumar
-- Other Contributors (Bhawesh implemented weight sharing on their codebase):
-  * Ngo Nhat Khang 
-  * Hy Truong Son 
+* David R. Bellamy
 
-Papers:
+
+Paper:
 * Predicting Polypharmacy Side-effects with Efficient Weight Sharing https://drive.google.com/file/d/1AcFKcBVm-eqZEPA62uHcjAnxZkYBGPNL/view?usp=sharing
-## Requirements
-- [Pytorch](https://pytorch.org/)
-- [Pytorch Geometric](https://pytorch-geometric.readthedocs.io/en/latest/)\
-Recommend using Conda for easy installation. 
-## Data
-Download from [Decagon](http://snap.stanford.edu/decagon/).
-Make sure the Data folder is created. Then, you should download the four required csv data files from the decagon webpage and locate them into the Data folders as:
+
+## Setup
+
+Using Python 3.11, create a virtual environment and install the required packages:
+```bash
+python3.11 -m venv .env
+source .env/bin/activate
+pip install -e .
+pip install -r requirements.txt
+```
+
+## Downloading evaluation data
+The evaluation data comes from [Decagon](http://snap.stanford.edu/decagon/). Run the following commands to download the data:
+```bash
+python setup_data.py
+```
+
+Make sure the `data/` folder is created and the `test/` folder within it.
   ```
-   
-    └── Polypharmacy                
-    │   ├── Data 
-    │   │   ├── bio-decagon-combo.csv
-    │   │   ├── bio-decagon-mono.csv
-    │   │   ├── bio-decagon-ppi.csv
-    │   │   ├── bio-decagon-targets.csv
-    │   ├── models
-    │   │   ├── trained_models
-    │   │   │   ├──...
-    │   │   ├── decoder_module.py
-    │   │   ├── hetero_gae.py
-    │   │   ├── hetero_gae_shared.py
+    .
+    ├── LICENSE
+    ├── README.md
+    ├── data
+    │   ├── bio-decagon-combo.csv
+    │   ├── bio-decagon-mono.csv
+    │   ├── bio-decagon-ppi.csv
+    │   ├── bio-decagon-targets.csv
+    │   └── test
+    │       ├── bio-decagon-combo.csv
+    │       ├── bio-decagon-mono.csv
+    │       ├── bio-decagon-ppi.csv
+    │       └── bio-decagon-targets.csv
+    ├── polypharmacy
+    │   ├── __init__.py
     │   ├── data.py
     │   ├── main_gae.py
     │   ├── metrics.py
+    │   ├── models
+    │   │   ├── __pycache__
+    │   │   │   ├── decoder_module.cpython-311.pyc
+    │   │   │   ├── decoder_module.cpython-312.pyc
+    │   │   │   ├── hetero_gae.cpython-311.pyc
+    │   │   │   └── hetero_gae.cpython-312.pyc
+    │   │   ├── decoder_module.py
+    │   │   ├── hetero_gae.py
+    │   │   └── hetero_gae_shared.py
     │   ├── train_hetero_gae.py
-    │   ├── utils.py
-    └── README.md
+    │   └── utils.py
+    ├── requirements.txt
+    ├── setup.py
+    └── setup_data.py
    ```
-
 
 - Train GAE without shared basis
   ```bash
     cd Polypharmacy/
-    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models --patience 25 --seed 5
+    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models --patience 25 --seed 5
   ```
 - Train GAE without shared basis with randomization of Protein-Protein Interaction and Protein-Drug Interaction data
   ```bash
     cd Polypharmacy/
-    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models --patience 25 --seed 5 --randomize_ppi --randomize_dpi
+    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models --patience 25 --seed 5 --randomize_ppi --randomize_dpi
   ```
   Train GAE with shared basis (15 basis vectors here)
   ```bash
     cd Polypharmacy/
-    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models_shared --patience 25 --seed 5 
+    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models_shared --patience 25 --seed 5 
   ```
   Train GAE with shared basis (15 basis vectors here) with randomization of Protein-Protein Interaction and Protein-Drug Interaction data
   ```bash
     cd Polypharmacy/
-    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir ./models/trained_models_shared --patience 25 --seed 5 --randomize_ppi --randomize_dpi
+    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models_shared --patience 25 --seed 5 --randomize_ppi --randomize_dpi
   ```
 
 ## Citations

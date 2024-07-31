@@ -1,0 +1,9 @@
+.env
+.vscode/
+
+data/
+trained_models/
+trained_models_shared/
+
+*.egg-info/
+*.pyc

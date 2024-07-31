@@ -1,6 +1,7 @@
-import torch
 from operator import itemgetter
-from sklearn.metrics import roc_auc_score, accuracy_score, average_precision_score
+
+from sklearn.metrics import accuracy_score, average_precision_score, roc_auc_score
+import torch
 
 
 def concat_all(item_dict):
