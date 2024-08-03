@@ -27,8 +27,6 @@ python setup_data.py
 Make sure the `data/` folder is created and the `test/` folder within it.
   ```
     .
-    ├── LICENSE
-    ├── README.md
     ├── data
     │   ├── bio-decagon-combo.csv
     │   ├── bio-decagon-mono.csv
@@ -41,20 +39,17 @@ Make sure the `data/` folder is created and the `test/` folder within it.
     │       └── bio-decagon-targets.csv
     ├── polypharmacy
     │   ├── __init__.py
-    │   ├── data.py
-    │   ├── main_gae.py
-    │   ├── metrics.py
     │   ├── models
-    │   │   ├── __pycache__
-    │   │   │   ├── decoder_module.cpython-311.pyc
-    │   │   │   ├── decoder_module.cpython-312.pyc
-    │   │   │   ├── hetero_gae.cpython-311.pyc
-    │   │   │   └── hetero_gae.cpython-312.pyc
     │   │   ├── decoder_module.py
     │   │   ├── hetero_gae.py
     │   │   └── hetero_gae_shared.py
     │   ├── train_hetero_gae.py
+    │   ├── data.py
+    │   ├── main_gae.py
+    │   ├── metrics.py
     │   └── utils.py
+    ├── LICENSE
+    ├── README.md
     ├── requirements.txt
     ├── setup.py
     └── setup_data.py
