@@ -100,7 +100,8 @@ class GeneralConvWithBasis(MessagePassing):
             out = F.normalize(out, p=2, dim=-1)
         return out
 
-    def message_basic(self, x_i: Tensor, x_j: Tensor):
+    def message_basic(self, x_j: Tensor):
+        # TODO: is x_i needed? GeneralConv.message_basic() has it.
         lin_msg_biases = torch.matmul(
             self.basis_lin_msg_biases, self.linear_combinations.t()
         ).squeeze()
@@ -111,13 +112,9 @@ class GeneralConvWithBasis(MessagePassing):
 
     def message(
         self,
-        x_i: Tensor,
         x_j: Tensor,
-        edge_index_i: Tensor,
-        size_i: Tensor,
-        edge_attr: Tensor,
     ) -> Tensor:
-        x_j_out = self.message_basic(x_i, x_j)
+        x_j_out = self.message_basic(x_j)
 
         return x_j_out
 
@@ -187,21 +184,11 @@ class HeteroGAE(nn.Module):
                 )
             ]
             # linear_combinations is a dictionary of edge_type: linear combination of basis functions
-            nn.init.xavier_uniform_(
-                self.basis_lin_msg_wt[0]
-            )  # initialize the basis_lin_msg_wt
-            nn.init.xavier_uniform_(
-                self.basis_lin_msg_biases[0]
-            )  # initialize the basis_lin_msg_biases
-            nn.init.xavier_uniform_(
-                self.basis_lin_self_wt[0]
-            )  # initialize the basis_lin_self_wt
-            nn.init.xavier_uniform_(
-                self.basis_lin_self_biases[0]
-            )  # initialize the basis_lin_self_biases
-            for params in self.linear_combinations[
-                0
-            ].values():  # initialize the linear_combinations
+            nn.init.xavier_uniform_(self.basis_lin_msg_wt[0])
+            nn.init.xavier_uniform_(self.basis_lin_msg_biases[0])
+            nn.init.xavier_uniform_(self.basis_lin_self_wt[0])
+            nn.init.xavier_uniform_(self.basis_lin_self_biases[0])
+            for params in self.linear_combinations[0].values():
                 nn.init.xavier_uniform_(params)
             for i, hidden_dim in enumerate(
                 hidden_dims[1:]
@@ -244,7 +231,6 @@ class HeteroGAE(nn.Module):
                     nn.init.xavier_uniform_(params)
 
         self.encoder = nn.ModuleList()
-        # pass the hidden_dims, edge_types and num_layers to generate the hetero_conv_dict
         conv_dicts = self.generate_hetero_conv_dict()
 
         for i in range(len(conv_dicts)):
@@ -325,18 +311,15 @@ class HeteroGAE(nn.Module):
 
         z_dict = x_dict
         for idx, conv in enumerate(self.encoder):
-            # HeteroConv expects dictionaries of source and destination features
-            z_dict_new = conv(
-                z_dict, edge_index_dict
-            )  # TODO: fix empty edge attr error
+            z_dict = conv(z_dict, edge_index_dict)
 
             if idx < len(self.encoder) - 1:
-                z_dict_new = {key: F.relu(z) for key, z in z_dict_new.items()}
-            z_dict_new = {
+                z_dict = {key: F.relu(z) for key, z in z_dict.items()}
+
+            z_dict = {
                 key: F.dropout(z, p=self.dropout, training=self.training)
-                for key, z in z_dict_new.items()
+                for key, z in z_dict.items()
             }
-            z_dict = z_dict_new
         return z_dict
 
     def decode_all_relation(self, z_dict, edge_index_dict, sigmoid=False):

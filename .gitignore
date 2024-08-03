@@ -4,6 +4,7 @@
 data/
 trained_models/
 trained_models_shared/
+*.pt
 
 *.egg-info/
 *.pyc

@@ -41,9 +41,10 @@ Make sure the `data/` folder is created and the `test/` folder within it.
     │   ├── __init__.py
     │   ├── models
     │   │   ├── decoder_module.py
-    │   │   ├── hetero_gae.py
-    │   │   └── hetero_gae_shared.py
+    │   │   ├── hetero_vgae.py
+    │   │   └── hetero_gae.py
     │   ├── train_hetero_gae.py
+    │   ├── train_hetero_vgae.py 
     │   ├── data.py
     │   ├── main_gae.py
     │   ├── metrics.py
@@ -57,23 +58,25 @@ Make sure the `data/` folder is created and the `test/` folder within it.
 
 - Train GAE without shared basis
   ```bash
-    cd Polypharmacy/
-    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models --patience 25 --seed 5
+    python polypharmacy/main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models --patience 25 --seed 5
   ```
 - Train GAE without shared basis with randomization of Protein-Protein Interaction and Protein-Drug Interaction data
   ```bash
-    cd Polypharmacy/
-    python main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models --patience 25 --seed 5 --randomize_ppi --randomize_dpi
+    python polypharmacy/main_gae.py --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models --patience 25 --seed 5 --randomize_ppi --randomize_dpi
   ```
   Train GAE with shared basis (15 basis vectors here)
   ```bash
-    cd Polypharmacy/
-    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models_shared --patience 25 --seed 5 
+    python polypharmacy/main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models_shared --patience 25 --seed 5 
   ```
   Train GAE with shared basis (15 basis vectors here) with randomization of Protein-Protein Interaction and Protein-Drug Interaction data
   ```bash
-    cd Polypharmacy/
-    python main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models_shared --patience 25 --seed 5 --randomize_ppi --randomize_dpi
+    python polypharmacy/main_gae.py  --num_bases 15 --num_epoch 1000 --lr 3e-3 --num_runs 1 --chkpt_dir trained_models_shared --patience 25 --seed 5 --randomize_ppi --randomize_dpi
+  ```
+  Train VGAE without shared basis
+  ```bash
+    python polypharmacy/train_hetero_vgae.py --num_epoch 300 --lr 1e-3 --chkpt_dir ./ --dropout 0.1 --device cpu --latent_encoder_type linear --seed 5
+
+
   ```
 
 ## Citations

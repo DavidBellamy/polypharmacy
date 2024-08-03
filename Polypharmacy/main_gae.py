@@ -37,7 +37,6 @@ for i in range(input_seed, args.num_runs + input_seed):
     seed = i
     result = run_experiment(seed, args)
     results[seed] = result
-    # print(f"Run {i + 1}: {result}")
     print(f"Run {i + 1}: {result['auroc']:.4f}", end=None)
     print(f"Run {i + 1}: {result['auprc']:.4f}", end=None)
     print(f"Run {i + 1}: {result['ap50']:.4f}", end=None)

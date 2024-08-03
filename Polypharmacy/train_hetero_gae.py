@@ -156,25 +156,24 @@ def run_experiment(seed, args):
     num_epoch = args.num_epoch
 
     print("Training device: ", args.device)
-    train_edge_label_index_dict = train_data.edge_label_index_dict
     train_data = train_data.to(args.device)
     valid_data = valid_data.to(args.device)
-    best_val_roc = 0  # best validation ROC-AUC score intialized to 0
-    print("Training...")  # Training loop
-    patience_counter = 0  # initialize the patience counter
+    best_val_roc = 0 
+    print("Training...") 
+    patience_counter = 0 
     for epoch in range(num_epoch):
         start = time.time()
-        net.train()  # set the model to training mode
-        optimizer.zero_grad()  # clear the gradients
+        net.train() 
+        optimizer.zero_grad() 
         z_dict = net.encode(
             train_data.x_dict, train_data.edge_index_dict
-        )  # encode the graph
+        )  
         pos_edge_label_index_dict = (
             train_data.edge_label_index_dict
-        )  # get the positive edge indices
-        edge_label_index_dict = {}  # initialize the dictionary for the edge indices
-        edge_label_dict = {}  # initialize the dictionary for the edge labels
-        for edge_type in edge_types:  # for each edge type
+        ) 
+        edge_label_index_dict = {}  # dictionary for the edge indices
+        edge_label_dict = {}
+        for edge_type in edge_types: 
             (
                 src,
                 relation,
