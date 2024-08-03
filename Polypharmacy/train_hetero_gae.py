@@ -1,4 +1,4 @@
-import argparse
+import os
 import time
 import warnings
 
@@ -35,6 +35,7 @@ def run_experiment(seed, args):
     # parser.add_argument("--randomize_ppi", action="store_true", help="randomize protein interactions")
     # parser.add_argument("--randomize_dpi", action="store_true", help="randomize drug protein interactions")
     # args = parser.parse_args()
+    torch.manual_seed(seed)
     torch_geometric.seed_everything(seed)
     print("Running experiment with seed: ", seed)
     print("Load data")
@@ -256,6 +257,9 @@ def run_experiment(seed, args):
         )
 
         if best_val_roc < roc_auc:
+            if not os.path.exists(args.chkpt_dir):
+                os.makedirs(args.chkpt_dir)
+
             best_val_roc = roc_auc
             patience_counter = 0
             torch.save(net.state_dict(), args.chkpt_dir + f"/gae_{seed}.pt")

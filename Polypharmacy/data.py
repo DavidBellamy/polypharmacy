@@ -24,8 +24,6 @@ def load_data(randomize_ppi=False, randomize_dpi=False, return_augment=False):
 
     """
     """ protein - protein """
-    randomize_ppi = randomize_ppi
-    randomize_dpi = randomize_dpi
     net, gene_2_idx = load_ppi(
         PPI_PATH, randomize_ppi=randomize_ppi
     )  # net: networkx graph from protein-protein interaction
@@ -40,9 +38,9 @@ def load_data(randomize_ppi=False, randomize_dpi=False, return_augment=False):
 
     """ drug - drug """
     (
-        combo_2_se,
+        _,
         se_2_combo,
-        se_2_name,
+        _,
         combo_2_stitch,
         stitch_2_idx,
     ) = load_combo_side_effect(COMBO_SIDE_EFFECT_PATH)
@@ -53,7 +51,7 @@ def load_data(randomize_ppi=False, randomize_dpi=False, return_augment=False):
     # stitch_2_idx: dictionary of indices for each stitch id
     edge_index_dict = defaultdict(list)
 
-    drug_2_idx, edge_index_dict = convert_combo_side_effect_to_edge_index_list(
+    _, edge_index_dict = convert_combo_side_effect_to_edge_index_list(
         se_2_combo, combo_2_stitch, stitch_2_idx
     )
 

@@ -1,4 +1,4 @@
-TEST_MODE = True
+TEST_MODE = False 
 
 if TEST_MODE:
     PPI_PATH = "data/test/bio-decagon-ppi.csv"
