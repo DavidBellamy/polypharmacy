@@ -28,13 +28,6 @@ def reset_params(self):
         self.lin_edge_weight.reset_parameters()
 
 
-def customlinear(input, weight, bias):
-    """
-    Implements a custom linear layer, which takes in weights and biases as input and performs a matrix multiplication
-    """
-    return F.linear(input, weight.t(), bias)
-
-
 class GeneralConvWithBasis(MessagePassing):
     """
     GeneralConv with custom linear layer, which takes in weights and biases as input
@@ -94,7 +87,7 @@ class GeneralConvWithBasis(MessagePassing):
             lin_self_biases = torch.matmul(
                 self.basis_lin_self_biases, self.linear_combinations.t()
             ).squeeze()
-            x_self = customlinear(x_self, lin_self_wt, lin_self_biases)
+            x_self = F.linear(x_self, lin_self_wt.t(), lin_self_biases)
         out = out + x_self
         if self.l2_normalize:
             out = F.normalize(out, p=2, dim=-1)
@@ -108,7 +101,7 @@ class GeneralConvWithBasis(MessagePassing):
         lin_msg_wt = torch.matmul(
             self.basis_lin_msg_wt, self.linear_combinations.t()
         ).squeeze()
-        return customlinear(x_j, lin_msg_wt, lin_msg_biases)
+        return F.linear(x_j, lin_msg_wt.t(), lin_msg_biases)
 
     def message(
         self,
