@@ -42,6 +42,7 @@ class GeneralConvWithBasis(MessagePassing):
         if isinstance(in_channels, int):
             in_channels = (in_channels, in_channels)
 
+    @torch.jit.export
     def forward(
         self,
         x: Union[Tensor, OptPairTensor],
@@ -89,3 +90,6 @@ class GeneralConvWithBasis(MessagePassing):
         x_j_out = self.message_basic(x_j)
 
         return x_j_out
+
+def get_scripted_general_conv_with_basis(*args, **kwargs):
+    return torch.jit.script(GeneralConvWithBasis(*args, **kwargs))
