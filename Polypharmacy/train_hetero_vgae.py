@@ -3,6 +3,8 @@ import time
 import warnings
 
 import torch
+from torch.profiler import profile, record_function, ProfilerActivity
+import torch.profiler
 import torch_geometric
 import torch_geometric.transforms as pyg_T
 import torch_geometric.utils as pyg_utils
@@ -106,50 +108,66 @@ kl_lambda = {
 }
 
 logger.info("Training...")
-for epoch in range(num_epoch):
-    start = time.time()
-    net.train()
-    optimizer.zero_grad()
-    z_dict, mu, logstd = net.encode(train_data.x_dict, train_data.edge_index_dict)
-    kl_loss = net.kl_loss_all(reduce="ratio", lambda_=kl_lambda)
-    recon_loss = net.recon_loss_all_relation(z_dict, train_data.edge_label_index_dict)
-    loss = recon_loss + kl_loss
-    loss.backward()
-    optimizer.step()
-    loss = loss.detach().item()
+with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+             profile_memory=True, record_shapes=True) as prof:
 
-    net.eval()
-    with torch.no_grad():
-        z_dict, mu, logstd = net.encode(valid_data.x_dict, valid_data.edge_index_dict)
-        pos_edge_label_index_dict = valid_data.edge_label_index_dict
-        edge_label_index_dict = {}
-        edge_label_dict = {}
-        for edge_type in valid_data.edge_label_index_dict.keys():
-            src, relation, dst = edge_type
-            if relation == "get_target":
-                continue
-            num_nodes = (valid_data.x_dict[src].shape[0], valid_data.x_dict[dst].shape[0])
-            neg_edge_label_index = pyg_utils.negative_sampling(pos_edge_label_index_dict[edge_type], num_nodes = num_nodes)
-            edge_label_index_dict[edge_type] = torch.cat([pos_edge_label_index_dict[edge_type], 
-                                                            neg_edge_label_index], dim = -1)
+    for epoch in range(num_epoch):
+        with record_function("train_epoch"):
+            start = time.time()
+            net.train()
+            optimizer.zero_grad()
+            z_dict, mu, logstd = net.encode(train_data.x_dict, train_data.edge_index_dict)
+            kl_loss = net.kl_loss_all(reduce="ratio", lambda_=kl_lambda)
+            recon_loss = net.recon_loss_all_relation(z_dict, train_data.edge_label_index_dict)
+            loss = recon_loss + kl_loss
+            loss.backward()
+            optimizer.step()
+            loss = loss.detach().item()
 
-            pos_label = torch.ones(pos_edge_label_index_dict[edge_type].shape[1])
-            neg_label = torch.zeros(neg_edge_label_index.shape[1])
-            edge_label_dict[relation] = torch.cat([pos_label, neg_label], dim = 0)
-        
-        edge_pred = net.decode_all_relation(z_dict, edge_label_index_dict, sigmoid = True)
-        for relation in edge_pred.keys():
-            edge_pred[relation] = edge_pred[relation].cpu()
-        roc_auc, _, _ = cal_roc_auc_score_per_side_effect(edge_pred, edge_label_dict, edge_types)
+        with record_function("eval_epoch"):
+            net.eval()
+            with torch.no_grad():
+                z_dict, mu, logstd = net.encode(valid_data.x_dict, valid_data.edge_index_dict)
+                pos_edge_label_index_dict = valid_data.edge_label_index_dict
+                edge_label_index_dict = {}
+                edge_label_dict = {}
+                for edge_type in valid_data.edge_label_index_dict.keys():
+                    src, relation, dst = edge_type
+                    if relation == "get_target":
+                        continue
+                    num_nodes = (valid_data.x_dict[src].shape[0], valid_data.x_dict[dst].shape[0])
+                    neg_edge_label_index = pyg_utils.negative_sampling(pos_edge_label_index_dict[edge_type], num_nodes = num_nodes)
+                    edge_label_index_dict[edge_type] = torch.cat([pos_edge_label_index_dict[edge_type], 
+                                                                    neg_edge_label_index], dim = -1)
 
-    end = time.time()   
-    logger.info(f"Epoch: {epoch} | Loss: {loss:.4f} | Val ROC: {roc_auc:.4f} | Best ROC: {best_val_roc:.4f} | Time: {end - start:.2f}s")
+                    pos_label = torch.ones(pos_edge_label_index_dict[edge_type].shape[1])
+                    neg_label = torch.zeros(neg_edge_label_index.shape[1])
+                    edge_label_dict[relation] = torch.cat([pos_label, neg_label], dim = 0)
+                
+                edge_pred = net.decode_all_relation(z_dict, edge_label_index_dict, sigmoid = True)
+                for relation in edge_pred.keys():
+                    edge_pred[relation] = edge_pred[relation].cpu()
+                roc_auc, _, _ = cal_roc_auc_score_per_side_effect(edge_pred, edge_label_dict, edge_types)
+
+            end = time.time()   
+            logger.info(f"Epoch: {epoch} | Loss: {loss:.4f} | Val ROC: {roc_auc:.4f} | Best ROC: {best_val_roc:.4f} | Time: {end - start:.2f}s")
+
+            if best_val_roc < roc_auc:
+                best_val_roc = roc_auc
+                model_name = f"hetero_vgae_bases_{args.num_bases}"
+                torch.save(net.state_dict(), args.chkpt_dir + f"{model_name}_{args.seed}.pt")
+                logger.info("Save Model")
+
+        if epoch == 5:  # Profile for a few epochs
+            break
     
-    if best_val_roc < roc_auc:
-        best_val_roc = roc_auc
-        model_name = f"hetero_vgae_bases_{args.num_bases}"
-        torch.save(net.state_dict(), args.chkpt_dir + f"{model_name}_{args.seed}.pt")
-        logger.info("Save Model")
+    # Print the profiler results
+    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=20))
+    prof.export_chrome_trace("trace.json")
+
+    # You can also save the profiler results to a file
+    prof.export_stacks("/tmp/profiler_stacks.txt", "self_cuda_time_total")
+
 
 # Test phase
 test_data = test_data.to(args.device)
