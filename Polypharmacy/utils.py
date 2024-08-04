@@ -1,4 +1,7 @@
 from collections import defaultdict
+import logging
+from logging.handlers import RotatingFileHandler
+import os
 from typing import DefaultDict
 
 import networkx as nx
@@ -7,6 +10,43 @@ import pandas as pd
 import torch
 
 from polypharmacy import MONO_SIDE_EFFECT_PATH
+
+
+def set_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
+def setup_logger(log_dir):
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_file = os.path.join(log_dir, "polypharmacy.log")
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    # Create handlers
+    c_handler = logging.StreamHandler() 
+    f_handler = RotatingFileHandler(
+        log_file, maxBytes=10 * 1024 * 1024, backupCount=5
+    )  
+
+    # Create formatters and add it to handlers
+    log_format = logging.Formatter(
+        "%(asctime)s - %(message)s"
+    )
+    c_handler.setFormatter(log_format)
+    f_handler.setFormatter(log_format)
+
+    # Add handlers to the logger
+    logger.addHandler(c_handler)
+    logger.addHandler(f_handler)
+
+    return logger
 
 
 def randomize_dataframe_col2_values(df, col_randomize):

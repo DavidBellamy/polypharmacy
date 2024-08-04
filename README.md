@@ -75,8 +75,10 @@ Make sure the `data/` folder is created and the `test/` folder within it.
   Train VGAE without shared basis
   ```bash
     python polypharmacy/train_hetero_vgae.py --num_epoch 300 --lr 1e-3 --chkpt_dir ./ --dropout 0.1 --device cpu --latent_encoder_type linear --seed 5
-
-
+  ```
+  Train VGAE with shared basis (15 basis vectors here)
+  ```bash
+    python polypharmacy/train_hetero_vgae.py --num_epoch 300 --lr 1e-3 --chkpt_dir ./ --dropout 0.1 --device cpu --latent_encoder_type linear --seed 5 --num_bases 15
   ```
 
 ## Citations

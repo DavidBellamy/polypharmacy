@@ -2,6 +2,9 @@ import argparse
 import pickle
 
 from polypharmacy.train_hetero_gae import run_experiment
+from polypharmacy.utils import setup_logger
+
+logger = setup_logger("./logs")
 
 
 parser = argparse.ArgumentParser(description="Polypharmacy Side Effect Prediction")
@@ -31,15 +34,19 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+logger.info("CLI Arguments:")
+for arg in vars(args):
+    logger.info(f"{arg}: {getattr(args, arg)}")
+
 results = {}
 input_seed = args.seed
 for i in range(input_seed, args.num_runs + input_seed):
     seed = i
-    result = run_experiment(seed, args)
+    result = run_experiment(seed, args, logger)
     results[seed] = result
-    print(f"Run {i + 1}: {result['auroc']:.4f}", end=None)
-    print(f"Run {i + 1}: {result['auprc']:.4f}", end=None)
-    print(f"Run {i + 1}: {result['ap50']:.4f}", end=None)
+    logger.info(f"Run {i + 1}: {result['auroc']:.4f}")
+    logger.info(f"Run {i + 1}: {result['auprc']:.4f}")
+    logger.info(f"Run {i + 1}: {result['ap50']:.4f}")
 # Save or process results as desired
 if args.num_bases is None:
     if args.randomize_ppi:

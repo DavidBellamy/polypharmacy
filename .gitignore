@@ -1,6 +1,7 @@
 .env
 .vscode/
 
+logs/
 data/
 trained_models/
 trained_models_shared/

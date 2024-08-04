@@ -10,24 +10,28 @@ import torch_geometric.utils as pyg_utils
 from polypharmacy.data import load_data
 from polypharmacy.metrics import cal_roc_auc_score_per_side_effect, cal_average_precision_score_per_side_effect, cal_apk
 from polypharmacy.models.hetero_vgae import HeteroVGAE
+from polypharmacy.utils import set_seed, setup_logger
 
+
+logger = setup_logger('./logs')
 
 warnings.filterwarnings("ignore")
 
-
-parser = argparse.ArgumentParser(description = "Polypharmacy Side Effect Prediction")
-parser.add_argument("--seed", type = int, default = 1, help = "random seed")
-parser.add_argument("--num_epoch", type = int, default = 300, help = "number of epochs")
-parser.add_argument("--lr", type = float, default = 1e-3, help = "learning rate")
-parser.add_argument("--chkpt_dir", type = str, default = "./checkpoint/", help = "checkpoint directory")
-parser.add_argument("--latent_encoder_type", type = str, default = "linear", help = "latent encoder type")
-parser.add_argument("--dropout", type = float, default = 0.1, help = "dropout rate")
-parser.add_argument("--device", type = str, default = "cuda:0", help = "training device")
+parser = argparse.ArgumentParser(description="Polypharmacy Side Effect Prediction")
+parser.add_argument("--seed", type=int, default=1, help="random seed")
+parser.add_argument("--num_epoch", type=int, default=300, help="number of epochs")
+parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
+parser.add_argument("--chkpt_dir", type=str, default="./checkpoint/", help="checkpoint directory")
+parser.add_argument("--latent_encoder_type", type=str, default="linear", help="latent encoder type")
+parser.add_argument("--dropout", type=float, default=0.1, help="dropout rate")
+parser.add_argument("--device", type=str, default="cuda:0", help="training device")
+parser.add_argument("--num_bases", type=int, default=None, help="number of basis matrices for weight sharing (0 for no weight sharing)")
 
 args = parser.parse_args()
+set_seed(args.seed)
 torch_geometric.seed_everything(args.seed)
 
-print("Load data")
+logger.info("Load data")
 data = load_data()
 edge_types = data.edge_types
 rev_edge_types = []
@@ -60,45 +64,54 @@ for edge_type in edge_types:
         valid_data[edge_type].edge_index = pyg_utils.to_undirected(valid_data[edge_type].edge_index)
         test_data[edge_type].edge_index = pyg_utils.to_undirected(test_data[edge_type].edge_index)
 
-print("Initialize model...")
+logger.info("Initialize model...")
 hidden_dim = [64, 32]
 num_layer = 2
 decoder_2_relation = {
-    "bilinear" : ["interact", "has_target", "get_target"],
-    "dedicom" :  [relation for (_, relation, _) in edge_types
-                    if relation not in ["interact", "has_target", "get_target"]]}
+    "bilinear": ["interact", "has_target", "get_target"],
+    "dedicom":  [relation for (_, relation, _) in edge_types
+                 if relation not in ["interact", "has_target", "get_target"]]
+}
 
 relation_2_decoder = {
-    "interact"   : "bilinear",
-    "has_target" : "bilinear",
-    "get_target" : "bilinear",
-    }
+    "interact": "bilinear",
+    "has_target": "bilinear",
+    "get_target": "bilinear",
+}
 
 for (_, relation, _) in edge_types:
     if relation not in ["interact", "has_target", "get_target"]:
         relation_2_decoder[relation] = "dedicom"
 
 latent_dim = 16
-net = HeteroVGAE(hidden_dim, latent_dim, data.node_types, data.edge_types, decoder_2_relation,
-                relation_2_decoder, latent_encoder_type = args.latent_encoder_type, dropout =args.dropout, device = args.device).to(args.device)
-optimizer = torch.optim.Adam(net.parameters(), lr = args.lr)
+
+input_dim = {node_type: data[node_type].num_features for node_type in data.node_types}
+net = HeteroVGAE(
+    hidden_dim, latent_dim, data.node_types, data.edge_types, decoder_2_relation,
+    relation_2_decoder, num_bases=args.num_bases, input_dim=input_dim, latent_encoder_type=args.latent_encoder_type,
+    dropout=args.dropout, device=args.device
+).to(args.device)
+
+optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 num_epoch = args.num_epoch
-print("Training device: ", args.device)
+logger.info(f"Training device: {args.device}")
+logger.info(f"Number of basis matrices: {args.num_bases}")
 
 train_data = train_data.to(args.device)
 valid_data = valid_data.to(args.device)
 best_val_roc = 0
 kl_lambda = {
-    "drug" : 0.9,
-    "gene" : 0.9,   
+    "drug": 0.9,
+    "gene": 0.9,   
 }
-print("Training...")
+
+logger.info("Training...")
 for epoch in range(num_epoch):
     start = time.time()
     net.train()
     optimizer.zero_grad()
-    z_dict = net.encode(train_data.x_dict, train_data.edge_index_dict)
-    kl_loss = net.kl_loss_all(reduce = "ratio", lambda_ = kl_lambda)
+    z_dict, mu, logstd = net.encode(train_data.x_dict, train_data.edge_index_dict)
+    kl_loss = net.kl_loss_all(reduce="ratio", lambda_=kl_lambda)
     recon_loss = net.recon_loss_all_relation(z_dict, train_data.edge_label_index_dict)
     loss = recon_loss + kl_loss
     loss.backward()
@@ -107,7 +120,7 @@ for epoch in range(num_epoch):
 
     net.eval()
     with torch.no_grad():
-        z_dict = net.encode(valid_data.x_dict, valid_data.edge_index_dict)
+        z_dict, mu, logstd = net.encode(valid_data.x_dict, valid_data.edge_index_dict)
         pos_edge_label_index_dict = valid_data.edge_label_index_dict
         edge_label_index_dict = {}
         edge_label_dict = {}
@@ -130,18 +143,20 @@ for epoch in range(num_epoch):
         roc_auc, _, _ = cal_roc_auc_score_per_side_effect(edge_pred, edge_label_dict, edge_types)
 
     end = time.time()   
-    print(f"| Epoch: {epoch} | Loss: {loss} | Val ROC: {roc_auc} |  Best ROC: {best_val_roc} | Time: {end - start}")
+    logger.info(f"Epoch: {epoch} | Loss: {loss:.4f} | Val ROC: {roc_auc:.4f} | Best ROC: {best_val_roc:.4f} | Time: {end - start:.2f}s")
     
     if best_val_roc < roc_auc:
         best_val_roc = roc_auc
-        torch.save(net.state_dict(), args.chkpt_dir + f"hetero_vgae_{args.seed}.pt")
-        print("----- Save Model -----")
+        model_name = f"hetero_vgae_bases_{args.num_bases}"
+        torch.save(net.state_dict(), args.chkpt_dir + f"{model_name}_{args.seed}.pt")
+        logger.info("Save Model")
 
+# Test phase
 test_data = test_data.to(args.device)
-net.load_state_dict(torch.load(args.chkpt_dir + f"hetero_vgae_{args.seed}.pt"))
+net.load_state_dict(torch.load(args.chkpt_dir + f"{model_name}_{args.seed}.pt"))
 net.eval()
 with torch.no_grad():
-    z_dict = net.encode(test_data.x_dict, test_data.edge_index_dict)
+    z_dict, mu, logstd = net.encode(test_data.x_dict, test_data.edge_index_dict)
     pos_edge_label_index_dict = test_data.edge_label_index_dict
     edge_label_index_dict = {}
     edge_label_dict = {}
@@ -162,8 +177,7 @@ with torch.no_grad():
     for relation in edge_pred.keys():
         edge_pred[relation] = edge_pred[relation].cpu()
     roc_auc, _, _ = cal_roc_auc_score_per_side_effect(edge_pred, edge_label_dict, edge_types)
-    prec, prec_dict = cal_average_precision_score_per_side_effect(edge_pred, edge_label_dict, edge_types)
+    prec, _, _ = cal_average_precision_score_per_side_effect(edge_pred, edge_label_dict, edge_types)
     apk, apk_dict = cal_apk(edge_pred, edge_label_dict, edge_types, k = 50)
-    print("-" * 100)
-    print()
-    print(f'| Test AUROC: {roc_auc} | Test AUPRC: {prec} | Test AP@50: {apk}')
+    logger.info("-" * 100)
+    logger.info(f'Test AUROC: {roc_auc:.4f} | Test AUPRC: {prec:.4f} | Test AP@50: {apk:.4f}')

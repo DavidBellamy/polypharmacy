@@ -16,33 +16,20 @@ from polypharmacy.metrics import (
     cal_roc_auc_score_per_side_effect,
 )
 from polypharmacy.data import load_data
+from polypharmacy.utils import set_seed
 
 
 warnings.filterwarnings("ignore")
 
 
-def run_experiment(seed, args):
-    # parser = argparse.ArgumentParser(description="Polypharmacy Side Effect Prediction")
-    # parser.add_argument("--seed", type=int, default=1, help="random seed")
-    # parser.add_argument("--num_epoch", type=int, default=300, help="number of epochs")
-    # parser.add_argument("--lr", type=float, default=1e-3, help="learning rate")
-    # parser.add_argument("--chkpt_dir", type=str, default="./checkpoint/", help="checkpoint directory")
-    # parser.add_argument("--dropout", type=float, default=0.1, help="dropout rate")
-    # parser.add_argument("--device", type=str, default="cuda:0", help="training device")
-    # parser.add_argument("--pretrained", type=str, default=None, help="pretrained model checkpoint path")
-    # parser.add_argument("--num_bases", type=int, default=None, help="number of basis functions")
-    # parser.add_argument("--save_model", action="store_true", help="save model")
-    # parser.add_argument("--randomize_ppi", action="store_true", help="randomize protein interactions")
-    # parser.add_argument("--randomize_dpi", action="store_true", help="randomize drug protein interactions")
-    # args = parser.parse_args()
-    torch.manual_seed(seed)
-    torch_geometric.seed_everything(seed)
-    print("Running experiment with seed: ", seed)
-    print("Load data")
+def run_experiment(seed, args, logger):
+    set_seed(args.seed)
+    torch_geometric.seed_everything(args.seed)
+    logger.info("Load data")
     if args.randomize_ppi:
-        print("Not Using Protein-Protein Interactions")
+        logger.info("Not Using Protein-Protein Interactions")
     if args.randomize_dpi:
-        print("Not Using Drug-Protein Interactions")
+        logger.info("Not Using Drug-Protein Interactions")
     data = load_data(args.randomize_ppi, args.randomize_dpi)
     edge_types = data.edge_types
     rev_edge_types = []
@@ -98,9 +85,8 @@ def run_experiment(seed, args):
                 test_data[edge_type].edge_index
             )
 
-    print("Initialize model...")
+    logger.info("Initialize model...")
     hidden_dim = [64, 32]  # hidden dimensions of the encoder
-    num_layer = 2  # number of layers in the encoder
 
     # The decoder is a bilinear decoder for the "interact", "has_target", and "get_target" relations
     # and a dedicom decoder for all other relations (the drug-drug interaction relations)
@@ -148,18 +134,18 @@ def run_experiment(seed, args):
 
     # Load the pre-trained model checkpoint if provided as an argument
     if args.pretrained:
-        print(f"Loading pre-trained model from {args.pretrained}")
+        logger.info(f"Loading pre-trained model from {args.pretrained}")
         net.load_state_dict(torch.load(args.pretrained))
 
     loss_fn = nn.BCEWithLogitsLoss(reduction="sum")
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
     num_epoch = args.num_epoch
 
-    print("Training device: ", args.device)
+    logger.info(f"Training device: {args.device}")
     train_data = train_data.to(args.device)
     valid_data = valid_data.to(args.device)
     best_val_roc = 0 
-    print("Training...") 
+    logger.info("Training...") 
     patience_counter = 0 
     for epoch in range(num_epoch):
         start = time.time()
@@ -251,7 +237,7 @@ def run_experiment(seed, args):
             )
 
         end = time.time()
-        print(
+        logger.info(
             f"| Epoch: {epoch} | Loss: {loss} | Val ROC: {roc_auc} | Best ROC: {best_val_roc} | Time: {end - start}"
         )
 
@@ -262,13 +248,13 @@ def run_experiment(seed, args):
             best_val_roc = roc_auc
             patience_counter = 0
             torch.save(net.state_dict(), args.chkpt_dir + f"/gae_{seed}.pt")
-            print("---- Save Model ----")
+            logger.info("---- Save Model ----")
         else:
             patience_counter += 1
-            print("patience counter: {}".format(patience_counter))
+            logger.info("patience counter: {}".format(patience_counter))
 
         if patience_counter >= args.patience and epoch > 50:
-            print(
+            logger.info(
                 "Early stopping due to no improvement in validation ROC-AUC score for {} epochs".format(
                     args.patience
                 )
@@ -309,9 +295,8 @@ def run_experiment(seed, args):
             edge_pred, edge_label_dict, edge_types
         )
         apk, apk_dict = cal_apk(edge_pred, edge_label_dict, edge_types, k=50)
-        print("-" * 100)
-        print()
-        print(f"| Test AUROC: {roc_auc} | Test AUPRC: {prec} | Test AP@50: {apk}")
+        logger.info("-" * 100)
+        logger.info(f"| Test AUROC: {roc_auc} | Test AUPRC: {prec} | Test AP@50: {apk}")
 
     return {
         "seed": seed,

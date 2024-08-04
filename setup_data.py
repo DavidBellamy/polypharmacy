@@ -4,6 +4,9 @@ import tarfile
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
+from polypharmacy.utils import setup_logger
+
+logger = setup_logger("./logs")
 
 def download_file(url, save_path):
     with requests.get(url, stream=True) as r:
@@ -53,13 +56,13 @@ def main():
         file_name = os.path.basename(url)
         tar_path = os.path.join(data_dir, file_name)
 
-        print(f"Downloading {url}...")
+        logger.info(f"Downloading {url}...")
         download_file(url, tar_path)
 
-        print(f"Extracting {tar_path}...")
+        logger.info(f"Extracting {tar_path}...")
         extract_tar_gz(tar_path, data_dir)
 
-        print(f"Deleting {tar_path}...")
+        logger.info(f"Deleting {tar_path}...")
         os.remove(tar_path)
 
     # Remove hidden files
@@ -71,10 +74,10 @@ def main():
         csv_path = os.path.join(data_dir, csv_file)
         subsample_path = os.path.join(test_dir, csv_file)
 
-        print(f"Creating subsample for {csv_file}...")
+        logger.info(f"Creating subsample for {csv_file}...")
         subsample_csv(csv_path, subsample_path)
 
-    print("Done!")
+    logger.info("Done!")
 
 
 if __name__ == "__main__":
