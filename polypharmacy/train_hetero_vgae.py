@@ -108,9 +108,22 @@ kl_lambda = {
 }
 
 logger.info("Training...")
-with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-             profile_memory=True, record_shapes=True) as prof:
 
+def trace_handler(prof):
+    output = prof.key_averages().table(sort_by="cpu_time_total", row_limit=20)
+    print(output)
+    prof.export_chrome_trace("/tmp/trace_" + str(prof.step_num) + ".json")
+
+with profile(
+    activities=[ProfilerActivity.CPU],
+    schedule=torch.profiler.schedule(wait=1, warmup=1, active=2, repeat=1),
+    on_trace_ready=trace_handler,
+    record_shapes=False,
+    profile_memory=False,
+    with_stack=False,
+    with_flops=False,
+    with_modules=False
+) as prof:
     for epoch in range(num_epoch):
         with record_function("train_epoch"):
             start = time.time()
@@ -157,16 +170,17 @@ with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
                 model_name = f"hetero_vgae_bases_{args.num_bases}"
                 torch.save(net.state_dict(), args.chkpt_dir + f"{model_name}_{args.seed}.pt")
                 logger.info("Save Model")
-
-        if epoch == 5:  # Profile for a few epochs
+        
+        prof.step()
+        if epoch == 4:  # Profile for a few epochs
             break
     
     # Print the profiler results
-    print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=20))
+    print(prof.key_averages().table(sort_by="cpu_time_total", row_limit=20))
     prof.export_chrome_trace("trace.json")
 
     # You can also save the profiler results to a file
-    prof.export_stacks("/tmp/profiler_stacks.txt", "self_cuda_time_total")
+    prof.export_stacks("/tmp/profiler_stacks.txt", "self_cpu_time_total")
 
 
 # Test phase
