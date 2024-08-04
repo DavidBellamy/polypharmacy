@@ -92,8 +92,9 @@ net = HeteroVGAE(
     hidden_dim, latent_dim, data.node_types, data.edge_types, decoder_2_relation,
     relation_2_decoder, num_bases=args.num_bases, input_dim=input_dim, latent_encoder_type=args.latent_encoder_type,
     dropout=args.dropout, device=args.device
-).to(args.device)
+)
 
+net = torch.compile(net).to(args.device)
 optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 num_epoch = args.num_epoch
 logger.info(f"Training device: {args.device}")
