@@ -6,12 +6,13 @@ import torch_geometric.nn as pyg_nn
 import torch_geometric.utils as pyg_utils
 
 from polypharmacy.models.decoder_module import BilinearDecoder, DEDICOM
-from polypharmacy.models.conv_with_basis import get_scripted_general_conv_with_basis
+from polypharmacy.models.conv_with_basis import GeneralConvWithBasis
 from polypharmacy.utils import set_seed
 
 
 set_seed(42)
 torch_geometric.seed_everything(42)
+
 
 class HeteroVGAE(nn.Module):
     def __init__(
@@ -140,7 +141,7 @@ class HeteroVGAE(nn.Module):
                 src, relation, dst = edge_type
                 
                 if self.num_bases is not None and src == "drug" and dst == "drug":
-                    D[edge_type] = get_scripted_general_conv_with_basis(
+                    D[edge_type] = GeneralConvWithBasis(
                         in_channels,
                         dims[i],
                         self.basis_lin_msg_wt[i],
