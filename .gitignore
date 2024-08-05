@@ -8,6 +8,7 @@ trained_models/
 trained_models_shared/
 *.pt
 lightning_logs/
+fit-profiler_report.txt
 
 *.egg-info/
 *.pyc

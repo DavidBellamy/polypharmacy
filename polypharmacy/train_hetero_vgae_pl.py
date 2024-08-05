@@ -3,7 +3,7 @@ import argparse
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-import torch
+from pytorch_lightning.profilers import AdvancedProfiler
 
 from polypharmacy.data_pl import DataModule
 from polypharmacy.models.hetero_vgae_pl import HeteroVGAE_PL
@@ -77,12 +77,15 @@ def main():
         },
     )
 
+    profiler = AdvancedProfiler(dirpath=".", filename="profiler_report")
+
     trainer = pl.Trainer(
-        max_epochs=1000,
+        max_epochs=3,
         accelerator="auto",
         devices="auto",
         logger=TensorBoardLogger("lightning_logs/"),
         callbacks=[ModelCheckpoint(monitor="val_roc_auc", mode="max")],
+        profiler=profiler,
         log_every_n_steps=1,
     )
 
